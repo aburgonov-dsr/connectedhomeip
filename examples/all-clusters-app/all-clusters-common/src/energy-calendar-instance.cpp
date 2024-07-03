@@ -39,6 +39,7 @@ static TransitionDayOfWeekBitmap GetWeekDate(uint32_t date)
     return (TransitionDayOfWeekBitmap) (calendarTime.tm_wday);
 }
 
+#if 0
 static uint32_t GetCurrentDateTime(void)
 {
     System::Clock::Timestamp time = System::SystemClock().GetMonotonicTimestamp();
@@ -47,13 +48,20 @@ static uint32_t GetCurrentDateTime(void)
 
     return static_cast<uint32_t>(msec / 1000);
 }
+#endif
 
 chip::app::Clusters::EnergyCalendar::CalendarProviderInstance::~CalendarProviderInstance()
 {
     FreeMemoryCalendarPeriodStructList(mCalendarPeriods);
     FreeMemoryDayStructList(mSpecialDays);
-    FreeMemoryDayStruct(mCurrentDay);
-    FreeMemoryDayStruct(mNextDay);
+    if (!mCurrentDay.IsNull())
+    {
+        FreeMemoryDayStruct(*mCurrentDay);
+    }
+    if (!mNextDay.IsNull())
+    {
+        FreeMemoryDayStruct(*mNextDay);
+    }
     if (!mName.IsNull())
     {
         chip::Platform::MemoryFree((void *) mName.Value().data());
@@ -68,140 +76,208 @@ void CalendarProviderInstance::Init(void)
 
 void CalendarProviderInstance::SetDefault(void)
 {
-    uint32_t date = GetCurrentDateTime();
-    uint32_t time = date % kOneDay;
-    date -= time;
+    SetCalendarID(std::nullopt);
+    SetName(std::nullopt);
+    SetProviderID(std::nullopt);
+    SetEventID(std::nullopt);
 
-    Structs::DayStruct::Type day = { .date = {},
-        .transitions = {
-//            { .transitionTime = 0, .PriceTier = 10},
-//            { .transitionTime = 1000, .PriceTier = 20}
-        },
-        .calendarID = chip::Optional<uint32_t>(123) };
+    FreeMemoryCalendarPeriodStructList(mCalendarPeriods);
+    SetCalendarPeriod(std::nullopt, mCalendarPeriods);
 
-    Structs::TransitionStruct::Type * buffer =
-        (Structs::TransitionStruct::Type *) chip::Platform::MemoryCalloc(2, sizeof(Structs::TransitionStruct::Type));
-
-    day.transitions          = Span<Structs::TransitionStruct::Type>(buffer, 2);
-    buffer[0].transitionTime = 0;
-    buffer[0].priceTier.SetValue(10);
-    buffer[1].transitionTime = 1000;
-    buffer[1].priceTier.SetValue(20);
-
-    Structs::PeakPeriodStruct::Type peak = {
-        .severity = PeakPeriodSeverityEnum::kHigh, .peakPeriod = 100, .startTime = 2000, .endTime = 2200
-    };
-
-    // DataModel::List<Structs::CalendarPeriodStruct::Type> calendarPeriods = {};
-    // DataModel::List<Structs::DayStruct::Type> specialDays = {};
-
-    char * str = (char *) chip::Platform::MemoryAlloc(5);
-    memcpy(str, "Test", 5);
-    CharSpan nameString(str, 5);
-    mName = MakeNullable(static_cast<CharSpan>(nameString));
-
-    SetCommonAttributes(1, mName, 123, 1);
-    SetCalendarPeriod(date, mCalendarPeriods);
+    FreeMemoryDayStructList(mSpecialDays);    
     SetSpecialDays(mSpecialDays);
-    SetCurrentAndNextDays(DataModel::MakeNullable(day), DataModel::MakeNullable(day));
-    SetPeakPeriods(DataModel::MakeNullable(peak), DataModel::MakeNullable(peak));
+
+    SetCurrentAndNextDays(std::nullopt, std::nullopt);
+    SetPeakPeriods(std::nullopt, std::nullopt);
 }
 
 CHIP_ERROR CalendarProviderInstance::LoadJson(Json::Value & root)
 {
+    Json::Value value;
     DataModel::Nullable<uint32_t> calendarID;
     DataModel::Nullable<uint32_t> providerID;
     DataModel::Nullable<uint32_t> eventID;
     DataModel::Nullable<uint32_t> startDate;
-    Structs::PeakPeriodStruct::Type currentPeak;
-    Structs::PeakPeriodStruct::Type nextPeak;
+    Structs::DayStruct::Type day;
+    Structs::PeakPeriodStruct::Type peak;
 
-    Json::Value value = root.get("CalendarID", Json::Value());
-    if (!value.empty() && value.isInt())
+    if (root.isMember("CalendarID"))
     {
-        calendarID.SetNonNull(value.asInt());
+        value = root.get("CalendarID", Json::Value());
+        if (value.isInt())
+        {
+            calendarID.SetNonNull(value.asInt());
+        }
+        else
+        {
+            calendarID.SetNull();
+        }
+        SetCalendarID(calendarID);
     }
 
-    value = root.get("Name", Json::Value());
-    if (!mName.IsNull())
+    if (root.isMember("Name"))
     {
-        chip::Platform::MemoryFree((void *) mName.Value().data());
-        mName.SetNull();
-    }
-    if (!value.empty() && value.isString())
-    {
-        size_t len = value.asString().size() + 1;
-        char * str = (char *) chip::Platform::MemoryAlloc(len);
-        memcpy(str, value.asCString(), len);
-        CharSpan nameString(str, len);
-        mName = MakeNullable(static_cast<CharSpan>(nameString));
-    }
-
-    value = root.get("ProviderID", Json::Value());
-    if (!value.empty() && value.isInt())
-    {
-        providerID.SetNonNull(value.asInt());
+        value = root.get("Name", Json::Value());
+        if (!mName.IsNull())
+        {
+            chip::Platform::MemoryFree((void *) mName.Value().data());
+            mName.SetNull();
+        }
+        if (value.isString())
+        {
+            size_t len = value.asString().size() + 1;
+            char * str = (char *) chip::Platform::MemoryAlloc(len);
+            memcpy(str, value.asCString(), len);
+            CharSpan nameString(str, len);
+            mName = MakeNullable(static_cast<CharSpan>(nameString));
+        }
+        SetName(mName);
     }
 
-    value = root.get("EventID", Json::Value());
-    if (!value.empty() && value.isInt())
+    if (root.isMember("ProviderID"))
     {
-        eventID.SetNonNull(value.asInt());
+        value = root.get("ProviderID", Json::Value());
+        if (value.isInt())
+        {
+            providerID.SetNonNull(value.asInt());
+        }
+        else
+        {
+            providerID.SetNull();
+        }
+        SetProviderID(providerID);
     }
 
-    SetCommonAttributes(calendarID, mName, providerID, eventID);
-
-    value = root.get("StartDate", Json::Value());
-    if (!value.empty() && value.isInt())
+    if (root.isMember("EventID"))
     {
-        startDate.SetNonNull(value.asInt());
+        value = root.get("EventID", Json::Value());
+        if (value.isInt())
+        {
+            eventID.SetNonNull(value.asInt());
+        }
+        else
+        {
+            eventID.SetNull();
+        }
+        SetEventID(eventID);
     }
 
-    value = root.get("CalendarPeriods", Json::Value());
-    FreeMemoryCalendarPeriodStructList(mCalendarPeriods);
-    if (!value.empty() && value.isArray())
+    if (root.isMember("StartDate") || root.isMember("CalendarPeriods"))
     {
-        JsonToCalendarPeriodStructList(value, mCalendarPeriods);
-    }
-    SetCalendarPeriod(startDate, mCalendarPeriods);
+        if (root.isMember("StartDate"))
+        {
+            value = root.get("StartDate", Json::Value());
+            if (value.isInt())
+            {
+                startDate.SetNonNull(value.asInt());
+            }
+            else
+            {
+                startDate.SetNull();
+            }
+        }
+        else
+        {
+            startDate = GetStartDate();
+        }
 
-    value = root.get("SpecialDays", Json::Value());
-    FreeMemoryDayStructList(mSpecialDays);
-    if (!value.empty() && value.isArray())
-    {
-        JsonToDayStructList(value, mSpecialDays);
-    }
-    SetSpecialDays(mSpecialDays);
-
-    value = root.get("CurrentDay", Json::Value());
-    FreeMemoryDayStruct(mCurrentDay);
-    if (!value.empty())
-    {
-        JsonToDayStruct(value, mCurrentDay);
-    }
-
-    value = root.get("NextDay", Json::Value());
-    FreeMemoryDayStruct(mNextDay);
-    if (!value.empty())
-    {
-        JsonToDayStruct(value, mNextDay);
-    }
-
-    SetCurrentAndNextDays(mCurrentDay, mNextDay);
-
-    value = root.get("CurrentPeak", Json::Value());
-    if (!value.empty())
-    {
-        JsonToPeakPeriodStruct(value, currentPeak);
+        if (root.isMember("CalendarPeriods"))
+        {
+            value = root.get("CalendarPeriods", Json::Value());
+            FreeMemoryCalendarPeriodStructList(mCalendarPeriods);
+            if (value.isArray())
+            {
+                JsonToCalendarPeriodStructList(value, mCalendarPeriods);
+            }
+        }
+        SetCalendarPeriod(startDate, mCalendarPeriods);
     }
 
-    value = root.get("NextPeak", Json::Value());
-    if (!value.empty())
+    if (root.isMember("SpecialDays"))
     {
-        JsonToPeakPeriodStruct(value, nextPeak);
+        value = root.get("SpecialDays", Json::Value());
+        FreeMemoryDayStructList(mSpecialDays);
+        if (value.isArray())
+        {
+            JsonToDayStructList(value, mSpecialDays);
+        }
+        SetSpecialDays(mSpecialDays);
     }
 
-    SetPeakPeriods(currentPeak, nextPeak);
+    if (root.isMember("CurrentDay") || root.isMember("NextDay"))
+    {
+        if (root.isMember("CurrentDay"))
+        {
+            value = root.get("CurrentDay", Json::Value());
+            if (!mCurrentDay.IsNull())
+            {
+                FreeMemoryDayStruct(*mCurrentDay);
+            }
+            if (!value.empty())
+            {
+                JsonToDayStruct(value, day);
+                mCurrentDay.SetNonNull(day);
+            }
+            else
+            {
+                mCurrentDay.SetNull();
+            }
+        }
+
+        if (root.isMember("NextDay"))
+        {
+            value = root.get("NextDay", Json::Value());
+            if (!mNextDay.IsNull())
+            {
+                FreeMemoryDayStruct(*mNextDay);
+            }
+            if (!value.empty())
+            {
+                JsonToDayStruct(value, day);
+                mNextDay.SetNonNull(day);
+            }
+            else
+            {
+                mNextDay.SetNull();
+            }
+        }
+
+        SetCurrentAndNextDays(mCurrentDay, mNextDay);
+    }
+
+
+    if (root.isMember("CurrentPeak") || root.isMember("NextPeak")) 
+    {
+        if (root.isMember("CurrentPeak"))
+        {
+            value = root.get("CurrentPeak", Json::Value());
+            if (!value.empty())
+            {
+                JsonToPeakPeriodStruct(value, peak);
+                mCurrentPeak.SetNonNull(peak);
+            }
+            else
+            {
+                mCurrentPeak.SetNull();
+            }
+        }
+
+        if (root.isMember("NextPeak"))
+        {
+            value = root.get("NextPeak", Json::Value());
+            if (!value.empty())
+            {
+                JsonToPeakPeriodStruct(value, peak);
+                mNextPeak.SetNonNull(peak);
+            }
+            else
+            {
+                mNextPeak.SetNull();
+            }
+        }
+
+        SetPeakPeriods(mCurrentPeak, mNextPeak);
+    }
 
     return CHIP_NO_ERROR;
 }

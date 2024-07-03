@@ -56,9 +56,11 @@ void MeterIdentificationDelegate::Init()
 
 CHIP_ERROR MeterIdentificationDelegate::LoadJson(Json::Value & root)
 {
-    Json::Value value = root.get("MeterType", Json::Value());
-    if (!value.empty())
+    Json::Value value;
+
+    if (root.isMember("MeterType"))
     {
+        value = root.get("MeterType", Json::Value());
         if(value.isInt())
         {
             SetMeterType(static_cast<MeterTypeEnum>(value.asInt()));
@@ -69,9 +71,9 @@ CHIP_ERROR MeterIdentificationDelegate::LoadJson(Json::Value & root)
         }
     }
 
-    value = root.get("UtilityName", Json::Value());
-    if (!value.empty())
+    if (root.isMember("UtilityName"))
     {
+        value = root.get("UtilityName", Json::Value());
         if(value.isString())
         {
             SetUtilityName(CharSpan::fromCharString(value.asCString()));
@@ -82,9 +84,9 @@ CHIP_ERROR MeterIdentificationDelegate::LoadJson(Json::Value & root)
         }
     }
 
-    value = root.get("PointOfDelivery", Json::Value());
-    if (!value.empty())
+    if (root.isMember("PointOfDelivery"))
     {
+        value = root.get("PointOfDelivery", Json::Value());
         if(value.isString())
         {
             SetPointOfDelivery(CharSpan::fromCharString(value.asCString()));
@@ -95,9 +97,9 @@ CHIP_ERROR MeterIdentificationDelegate::LoadJson(Json::Value & root)
         }
     }
 
-    value = root.get("PowerThreshold", Json::Value());
-    if (!value.empty())
+    if (root.isMember("PowerThreshold"))
     {
+        value = root.get("PowerThreshold", Json::Value());
         if(value.isInt())
         {
             SetPowerThreshold(value.asInt());
@@ -108,9 +110,9 @@ CHIP_ERROR MeterIdentificationDelegate::LoadJson(Json::Value & root)
         }
     }
 
-    value = root.get("PowerThresholdSource", Json::Value());
-    if (!value.empty())
+    if (root.isMember("PowerThresholdSource"))
     {
+        value = root.get("PowerThresholdSource", Json::Value());
         if(value.isInt())
         {
             SetPowerThresholdSource(static_cast<PowerThresholdSourceEnum>(value.asInt()));
@@ -156,7 +158,7 @@ CHIP_ERROR MeterIdentificationDelegate::SetUtilityName(CharSpan newValue)
 
     // if (!oldValue.data_equal(newValue))
     //{
-    //     MatterReportingAttributeChangeCallback(mEndpointId, MeterIdentification::Id, UtilityName::Id);
+         MatterReportingAttributeChangeCallback(mEndpointId, MeterIdentification::Id, UtilityName::Id);
     // }
 
     return CHIP_NO_ERROR;
@@ -181,7 +183,7 @@ CHIP_ERROR MeterIdentificationDelegate::SetPointOfDelivery(CharSpan newValue)
 
     // if (!oldValue.data_equal(newValue))
     //{
-    //     MatterReportingAttributeChangeCallback(mEndpointId, MeterIdentification::Id, PointOfDelivery::Id);
+         MatterReportingAttributeChangeCallback(mEndpointId, MeterIdentification::Id, PointOfDelivery::Id);
     // }
 
     return CHIP_NO_ERROR;
@@ -194,7 +196,7 @@ CHIP_ERROR MeterIdentificationDelegate::SetPowerThreshold(DataModel::Nullable<ui
     mPowerThreshold = newValue;
     // if (oldValue != newValue)
     //{
-    //     MatterReportingAttributeChangeCallback(mEndpointId, MeterIdentification::Id, PowerThreshold::Id);
+         MatterReportingAttributeChangeCallback(mEndpointId, MeterIdentification::Id, PowerThreshold::Id);
     // }
 
     return CHIP_NO_ERROR;
@@ -207,7 +209,7 @@ CHIP_ERROR MeterIdentificationDelegate::SetPowerThresholdSource(DataModel::Nulla
     mPowerThresholdSource = newValue;
     // if (oldValue != newValue)
     //{
-    //     MatterReportingAttributeChangeCallback(mEndpointId, MeterIdentification::Id, PowerThresholdSource::Id);
+         MatterReportingAttributeChangeCallback(mEndpointId, MeterIdentification::Id, PowerThresholdSource::Id);
     // }
 
     return CHIP_NO_ERROR;

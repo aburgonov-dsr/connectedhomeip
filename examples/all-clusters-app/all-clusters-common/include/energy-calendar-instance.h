@@ -57,15 +57,17 @@ public:
                        DataModel::Nullable<Structs::DayStruct::Type> & NextDay) override;
 
 private:
-    uint32_t mDate;
-    uint32_t mTime;
+    //uint32_t mDate;
+    //uint32_t mTime;
 
     // Attributes contaners allocated memory
     DataModel::Nullable<CharSpan> mName;
     DataModel::List<Structs::CalendarPeriodStruct::Type> mCalendarPeriods;
     DataModel::List<Structs::DayStruct::Type> mSpecialDays;
-    Structs::DayStruct::Type mCurrentDay;
-    Structs::DayStruct::Type mNextDay;
+    DataModel::Nullable<Structs::DayStruct::Type> mCurrentDay;
+    DataModel::Nullable<Structs::DayStruct::Type> mNextDay;
+    DataModel::Nullable<Structs::PeakPeriodStruct::Type> mCurrentPeak;
+    DataModel::Nullable<Structs::PeakPeriodStruct::Type> mNextPeak;
 
     DataModel::Nullable<Structs::DayStruct::Type> GetDay(uint32_t date);
     bool CheckSpecialDays();

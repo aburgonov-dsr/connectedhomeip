@@ -8526,6 +8526,18 @@ endpoint 1 {
   }
 
   server cluster EnergyCalendar {
+    callback attribute calendarID;
+    callback attribute name;
+    callback attribute providerID;
+    ram      attribute eventID;
+    callback attribute startDate;
+    callback attribute calendarPeriods;
+    callback attribute specialDays;
+    callback attribute currentDay;
+    callback attribute nextDay;
+    callback attribute currentTransition;
+    callback attribute currentPeakPeriod;
+    callback attribute nextPeakPeriod;
     callback attribute featureMap;
     ram      attribute clusterRevision default = 1;
   }
@@ -9098,6 +9110,11 @@ endpoint 1 {
   }
 
   server cluster MeterIdentification {
+    callback attribute meterType;
+    callback attribute utilityName;
+    callback attribute pointOfDelivery;
+    callback attribute powerThreshold;
+    callback attribute powerThresholdSource;
     callback attribute featureMap;
     ram      attribute clusterRevision default = 1;
   }

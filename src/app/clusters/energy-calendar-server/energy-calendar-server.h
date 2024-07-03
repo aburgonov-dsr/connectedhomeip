@@ -55,8 +55,10 @@ public:
 
     EndpointId endpoint() const { return _endpoint; };
 
-    CHIP_ERROR SetCommonAttributes(DataModel::Nullable<uint32_t> CalendarID, DataModel::Nullable<CharSpan> Name,
-                                   DataModel::Nullable<uint32_t> ProviderID, DataModel::Nullable<uint32_t> EventID);
+    CHIP_ERROR SetCalendarID(DataModel::Nullable<uint32_t> CalendarID);
+    CHIP_ERROR SetName(DataModel::Nullable<CharSpan> Name);
+    CHIP_ERROR SetProviderID(DataModel::Nullable<uint32_t> ProviderID);
+    CHIP_ERROR SetEventID(DataModel::Nullable<uint32_t> EventID);
 
     CHIP_ERROR SetCalendarPeriod(DataModel::Nullable<uint32_t> StartDate,
                                  DataModel::List<Structs::CalendarPeriodStruct::Type> CalendarPeriods);
@@ -83,7 +85,6 @@ public:
     DataModel::List<Structs::DayStruct::Type> GetSpecialDays(void) { return _specialDays; }
     DataModel::Nullable<Structs::DayStruct::Type> GetCurrentDay(void) { return _currentDay; }
     DataModel::Nullable<Structs::DayStruct::Type> GetNextDay(void) { return _nextDay; }
-    // DataModel::Nullable<Structs::TransitionStruct::Type> GetCurrentTransition(_void);
     DataModel::Nullable<Structs::PeakPeriodStruct::Type> GetCurrentPeakPeriod(void) { return _currentPeakPeriod; }
     DataModel::Nullable<Structs::PeakPeriodStruct::Type> GetNextPeakPeriod(void) { return _nextPeakPeriod; }
 
@@ -99,7 +100,6 @@ private:
     DataModel::List<Structs::DayStruct::Type> _specialDays;
     DataModel::Nullable<Structs::DayStruct::Type> _currentDay;
     DataModel::Nullable<Structs::DayStruct::Type> _nextDay;
-    // Structs::TransitionStruct::Type _currentTransition;
     DataModel::Nullable<Structs::PeakPeriodStruct::Type> _currentPeakPeriod;
     DataModel::Nullable<Structs::PeakPeriodStruct::Type> _nextPeakPeriod;
 };

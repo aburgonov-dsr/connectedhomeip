@@ -67,39 +67,48 @@ void UnlockThreadTask(void)
     chip::DeviceLayer::ThreadStackMgr().UnlockThreadStack();
 }
 
-CHIP_ERROR CalendarProvider::SetCommonAttributes(DataModel::Nullable<uint32_t> CalendarID, DataModel::Nullable<CharSpan> Name,
-                                                 DataModel::Nullable<uint32_t> ProviderID, DataModel::Nullable<uint32_t> EventID)
+CHIP_ERROR CalendarProvider::SetCalendarID(DataModel::Nullable<uint32_t> CalendarID)
 {
-    bool change;
-
-    change = _calendarID != CalendarID;
+    bool change = *_calendarID != *CalendarID;
     if (change)
     {
         _calendarID.SetNonNull(*CalendarID);
-        // MatterReportingAttributeChangeCallback(_endpoint, EnergyCalendar::Id, CalendarID::Id);
+        MatterReportingAttributeChangeCallback(_endpoint, EnergyCalendar::Id, CalendarID::Id);
     }
 
-    change = true; // Name != _name;
+    return CHIP_NO_ERROR;
+}
+
+CHIP_ERROR CalendarProvider::SetName(DataModel::Nullable<CharSpan> Name)
+{
+    bool change = !(Name->data_equal(*_name));
     if (change)
     {
         _name.SetNonNull(*Name);
-        // MatterReportingAttributeChangeCallback(_endpoint, EnergyCalendar::Id, Name::Id);
+        MatterReportingAttributeChangeCallback(_endpoint, EnergyCalendar::Id, Name::Id);
     }
+    return CHIP_NO_ERROR;
+}
 
-    change = ProviderID != _providerID;
+CHIP_ERROR CalendarProvider::SetProviderID(DataModel::Nullable<uint32_t> ProviderID)
+{
+    bool change = *ProviderID != *_providerID;
     if (change)
     {
         _providerID.SetNonNull(*ProviderID);
-        // MatterReportingAttributeChangeCallback(_endpoint, EnergyCalendar::Id, ProviderID::Id);
+        MatterReportingAttributeChangeCallback(_endpoint, EnergyCalendar::Id, ProviderID::Id);
     }
+    return CHIP_NO_ERROR;
+}
 
-    change = EventID != _eventID;
+CHIP_ERROR CalendarProvider::SetEventID(DataModel::Nullable<uint32_t> EventID)
+{
+    bool change = *EventID != *_eventID;
     if (change)
     {
         _eventID.SetNonNull(*EventID);
-        // MatterReportingAttributeChangeCallback(_endpoint, EnergyCalendar::Id, EventID::Id);
+        MatterReportingAttributeChangeCallback(_endpoint, EnergyCalendar::Id, EventID::Id);
     }
-
     return CHIP_NO_ERROR;
 }
 
@@ -110,15 +119,15 @@ CHIP_ERROR CalendarProvider::SetCalendarPeriod(DataModel::Nullable<uint32_t> Sta
 
     LockThreadTask();
 
-    change = StartDate != _startDate;
+    change = *StartDate != *_startDate;
     if (change)
     {
         _startDate.SetNonNull(*StartDate);
-        // MatterReportingAttributeChangeCallback(_endpoint, EnergyCalendar::Id, StartDate::Id);
+        MatterReportingAttributeChangeCallback(_endpoint, EnergyCalendar::Id, StartDate::Id);
     }
 
     _calendarPeriods = CalendarPeriods;
-    // MatterReportingAttributeChangeCallback(_endpoint, EnergyCalendar::Id, CalendarPeriods::Id);
+    MatterReportingAttributeChangeCallback(_endpoint, EnergyCalendar::Id, CalendarPeriods::Id);
 
     UnlockThreadTask();
     return CHIP_NO_ERROR;
@@ -129,7 +138,7 @@ CHIP_ERROR CalendarProvider::SetSpecialDays(DataModel::List<Structs::DayStruct::
     LockThreadTask();
 
     _specialDays = SpecialDays;
-    // MatterReportingAttributeChangeCallback(_endpoint, EnergyCalendar::Id, SpecialDays::Id);
+    MatterReportingAttributeChangeCallback(_endpoint, EnergyCalendar::Id, SpecialDays::Id);
 
     UnlockThreadTask();
     return CHIP_NO_ERROR;
@@ -146,14 +155,14 @@ CHIP_ERROR CalendarProvider::SetCurrentAndNextDays(DataModel::Nullable<Structs::
     if (change)
     {
         _currentDay.SetNonNull(*CurrentDay);
-        // MatterReportingAttributeChangeCallback(_endpoint, EnergyCalendar::Id, CurrentDay::Id);
+        MatterReportingAttributeChangeCallback(_endpoint, EnergyCalendar::Id, CurrentDay::Id);
     }
 
     change = true; // *NextDay != *_nextDay;
     if (change)
     {
         _nextDay.SetNonNull(*NextDay);
-        // MatterReportingAttributeChangeCallback(_endpoint, EnergyCalendar::Id, NextDay::Id);
+        MatterReportingAttributeChangeCallback(_endpoint, EnergyCalendar::Id, NextDay::Id);
     }
 
     UnlockThreadTask();
@@ -170,14 +179,14 @@ CHIP_ERROR CalendarProvider::SetPeakPeriods(DataModel::Nullable<Structs::PeakPer
     if (change)
     {
         _currentPeakPeriod.SetNonNull(*CurrentPeakPeriod);
-        // MatterReportingAttributeChangeCallback(_endpoint, EnergyCalendar::Id, CurrentPeakPeriod::Id);
+        MatterReportingAttributeChangeCallback(_endpoint, EnergyCalendar::Id, CurrentPeakPeriod::Id);
     }
 
     change = true; // NextPeakPeriod != _nextPeakPeriod;
     if (change)
     {
         _nextPeakPeriod.SetNonNull(*NextPeakPeriod);
-        // MatterReportingAttributeChangeCallback(_endpoint, EnergyCalendar::Id, NextPeakPeriod::Id);
+        MatterReportingAttributeChangeCallback(_endpoint, EnergyCalendar::Id, NextPeakPeriod::Id);
     }
 
     UnlockThreadTask();
