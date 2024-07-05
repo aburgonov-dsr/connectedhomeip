@@ -43,10 +43,23 @@ void MeterIdentificationInstance::Shutdown()
 
 // --------------- Internal Attribute Set APIs
 
+chip::app::Clusters::MeterIdentification::MeterIdentificationDelegate::~MeterIdentificationDelegate()
+{
+    if (!mUtilityName.IsNull())
+    {
+        chip::Platform::MemoryFree((void *) mUtilityName.Value().data());
+        mUtilityName.SetNull();
+    }
+
+    if (!mPointOfDelivery.IsNull())
+    {
+        chip::Platform::MemoryFree((void *) mPointOfDelivery.Value().data());
+        mPointOfDelivery.SetNull();
+    }
+}
+
 void MeterIdentificationDelegate::Init()
 {
-    ChipLogProgress(Zcl, "MeterIdentificationDelegate::Init");
-
     SetMeterType(MeterTypeEnum::kPrivate);
     SetUtilityName(CharSpan::fromCharString("Test Utility Name"));
     SetPointOfDelivery(CharSpan::fromCharString("Test PointOfDelivery"));
@@ -80,7 +93,7 @@ CHIP_ERROR MeterIdentificationDelegate::LoadJson(Json::Value & root)
         }
         else
         {
-            SetUtilityName(CharSpan());
+            SetUtilityName(std::nullopt);
         }
     }
 
@@ -93,7 +106,7 @@ CHIP_ERROR MeterIdentificationDelegate::LoadJson(Json::Value & root)
         }
         else
         {
-            SetPointOfDelivery(CharSpan());
+            SetPointOfDelivery(std::nullopt);
         }
     }
 
@@ -139,21 +152,23 @@ CHIP_ERROR MeterIdentificationDelegate::SetMeterType(DataModel::Nullable<MeterTy
     return CHIP_NO_ERROR;
 }
 
-CHIP_ERROR MeterIdentificationDelegate::SetUtilityName(CharSpan newValue)
+CHIP_ERROR MeterIdentificationDelegate::SetUtilityName(DataModel::Nullable<CharSpan> newValue)
 {
     // CharSpan oldValue = mUtilityName;
 
-    chip::Platform::MemoryFree((void*)mUtilityName.data());
-    if (!newValue.empty())
+    if (!mUtilityName.IsNull())
     {
-        size_t len = newValue.size();
-        char *str = (char*)chip::Platform::MemoryAlloc(len);
-        memcpy(str, newValue.data(), len);
-        mUtilityName = CharSpan(str, len);
+        chip::Platform::MemoryFree((void *) mUtilityName.Value().data());
+        mUtilityName.SetNull();
     }
-    else
+
+    if (!newValue.IsNull())
     {
-        mUtilityName = CharSpan();
+        size_t len = newValue.Value().size();
+        char * str = (char *) chip::Platform::MemoryAlloc(len);
+        memcpy(str, newValue.Value().data(), len);
+        CharSpan nameString(str, len);
+        mUtilityName = MakeNullable(static_cast<CharSpan>(nameString));
     }
 
     // if (!oldValue.data_equal(newValue))
@@ -164,21 +179,23 @@ CHIP_ERROR MeterIdentificationDelegate::SetUtilityName(CharSpan newValue)
     return CHIP_NO_ERROR;
 }
 
-CHIP_ERROR MeterIdentificationDelegate::SetPointOfDelivery(CharSpan newValue)
+CHIP_ERROR MeterIdentificationDelegate::SetPointOfDelivery(DataModel::Nullable<CharSpan> newValue)
 {
     // CharSpan oldValue = mPointOfDelivery;
 
-    chip::Platform::MemoryFree((void*)mPointOfDelivery.data());
-    if (!newValue.empty())
+    if (!mPointOfDelivery.IsNull())
     {
-        size_t len = newValue.size();
-        char *str = (char*)chip::Platform::MemoryAlloc(len);
-        memcpy(str, newValue.data(), len);
-        mPointOfDelivery = CharSpan(str, len);
+        chip::Platform::MemoryFree((void *) mPointOfDelivery.Value().data());
+        mPointOfDelivery.SetNull();
     }
-    else
+
+    if (!newValue.IsNull())
     {
-        mPointOfDelivery = CharSpan();
+        size_t len = newValue.Value().size();
+        char * str = (char *) chip::Platform::MemoryAlloc(len);
+        memcpy(str, newValue.Value().data(), len);
+        CharSpan nameString(str, len);
+        mPointOfDelivery = MakeNullable(static_cast<CharSpan>(nameString));
     }
 
     // if (!oldValue.data_equal(newValue))

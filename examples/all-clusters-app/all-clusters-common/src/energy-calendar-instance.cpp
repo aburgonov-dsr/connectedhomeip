@@ -31,7 +31,7 @@ using namespace chip::app::Clusters::EnergyCalendar::Attributes;
 
 constexpr uint32_t kOneDay = 24 * 60 * 60;
 
-static TransitionDayOfWeekBitmap GetWeekDate(uint32_t date)
+static TransitionDayOfWeekBitmap GetWeekDate(uint64_t date)
 {
     tm calendarTime{};
     time_t dt = date;
@@ -40,13 +40,13 @@ static TransitionDayOfWeekBitmap GetWeekDate(uint32_t date)
 }
 
 #if 0
-static uint32_t GetCurrentDateTime(void)
+static uint64_t GetCurrentDateTime(void)
 {
     System::Clock::Timestamp time = System::SystemClock().GetMonotonicTimestamp();
     using cast                    = std::chrono::duration<std::uint64_t>;
     uint64_t msec                 = std::chrono::duration_cast<cast>(time).count();
 
-    return static_cast<uint32_t>(msec / 1000);
+    return msec / 1000;
 }
 #endif
 
@@ -54,14 +54,6 @@ chip::app::Clusters::EnergyCalendar::CalendarProviderInstance::~CalendarProvider
 {
     FreeMemoryCalendarPeriodStructList(mCalendarPeriods);
     FreeMemoryDayStructList(mSpecialDays);
-    if (!mCurrentDay.IsNull())
-    {
-        FreeMemoryDayStruct(*mCurrentDay);
-    }
-    if (!mNextDay.IsNull())
-    {
-        FreeMemoryDayStruct(*mNextDay);
-    }
     if (!mName.IsNull())
     {
         chip::Platform::MemoryFree((void *) mName.Value().data());
@@ -97,8 +89,6 @@ CHIP_ERROR CalendarProviderInstance::LoadJson(Json::Value & root)
     DataModel::Nullable<uint32_t> calendarID;
     DataModel::Nullable<uint32_t> providerID;
     DataModel::Nullable<uint32_t> eventID;
-    DataModel::Nullable<uint32_t> startDate;
-    Structs::DayStruct::Type day;
     Structs::PeakPeriodStruct::Type peak;
 
     if (root.isMember("CalendarID"))
@@ -115,9 +105,9 @@ CHIP_ERROR CalendarProviderInstance::LoadJson(Json::Value & root)
         SetCalendarID(calendarID);
     }
 
-    if (root.isMember("Name"))
+    if (root.isMember("CalendarName"))
     {
-        value = root.get("Name", Json::Value());
+        value = root.get("CalendarName", Json::Value());
         if (!mName.IsNull())
         {
             chip::Platform::MemoryFree((void *) mName.Value().data());
@@ -148,20 +138,6 @@ CHIP_ERROR CalendarProviderInstance::LoadJson(Json::Value & root)
         SetProviderID(providerID);
     }
 
-    if (root.isMember("EventID"))
-    {
-        value = root.get("EventID", Json::Value());
-        if (value.isInt())
-        {
-            eventID.SetNonNull(value.asInt());
-        }
-        else
-        {
-            eventID.SetNull();
-        }
-        SetEventID(eventID);
-    }
-
     if (root.isMember("StartDate") || root.isMember("CalendarPeriods"))
     {
         if (root.isMember("StartDate"))
@@ -169,82 +145,36 @@ CHIP_ERROR CalendarProviderInstance::LoadJson(Json::Value & root)
             value = root.get("StartDate", Json::Value());
             if (value.isInt())
             {
-                startDate.SetNonNull(value.asInt());
+                mStartDate.SetNonNull(value.asInt());
             }
             else
             {
-                startDate.SetNull();
+                mStartDate.SetNull();
             }
-        }
-        else
-        {
-            startDate = GetStartDate();
         }
 
         if (root.isMember("CalendarPeriods"))
         {
-            value = root.get("CalendarPeriods", Json::Value());
             FreeMemoryCalendarPeriodStructList(mCalendarPeriods);
+            value = root.get("CalendarPeriods", Json::Value());
             if (value.isArray())
             {
                 JsonToCalendarPeriodStructList(value, mCalendarPeriods);
             }
         }
-        SetCalendarPeriod(startDate, mCalendarPeriods);
+        SetCalendarPeriod(mStartDate, mCalendarPeriods);
     }
 
     if (root.isMember("SpecialDays"))
     {
-        value = root.get("SpecialDays", Json::Value());
         FreeMemoryDayStructList(mSpecialDays);
+        value = root.get("SpecialDays", Json::Value());
         if (value.isArray())
         {
             JsonToDayStructList(value, mSpecialDays);
         }
         SetSpecialDays(mSpecialDays);
     }
-
-    if (root.isMember("CurrentDay") || root.isMember("NextDay"))
-    {
-        if (root.isMember("CurrentDay"))
-        {
-            value = root.get("CurrentDay", Json::Value());
-            if (!mCurrentDay.IsNull())
-            {
-                FreeMemoryDayStruct(*mCurrentDay);
-            }
-            if (!value.empty())
-            {
-                JsonToDayStruct(value, day);
-                mCurrentDay.SetNonNull(day);
-            }
-            else
-            {
-                mCurrentDay.SetNull();
-            }
-        }
-
-        if (root.isMember("NextDay"))
-        {
-            value = root.get("NextDay", Json::Value());
-            if (!mNextDay.IsNull())
-            {
-                FreeMemoryDayStruct(*mNextDay);
-            }
-            if (!value.empty())
-            {
-                JsonToDayStruct(value, day);
-                mNextDay.SetNonNull(day);
-            }
-            else
-            {
-                mNextDay.SetNull();
-            }
-        }
-
-        SetCurrentAndNextDays(mCurrentDay, mNextDay);
-    }
-
 
     if (root.isMember("CurrentPeak") || root.isMember("NextPeak")) 
     {
@@ -279,19 +209,32 @@ CHIP_ERROR CalendarProviderInstance::LoadJson(Json::Value & root)
         SetPeakPeriods(mCurrentPeak, mNextPeak);
     }
 
+    if (root.isMember("EventID"))
+    {
+        value = root.get("EventID", Json::Value());
+        if (value.isInt())
+        {
+            eventID.SetNonNull(value.asInt());
+        }
+        else
+        {
+            eventID.SetNull();
+        }
+        SetEventID(eventID);
+    }
+
     return CHIP_NO_ERROR;
 }
 
-CHIP_ERROR CalendarProviderInstance::GetDays(EndpointId ep, DataModel::Nullable<Structs::DayStruct::Type> & CurrentDay,
-                                             DataModel::Nullable<Structs::DayStruct::Type> & NextDay)
+void chip::app::Clusters::EnergyCalendar::CalendarProviderInstance::ErrorMessage(EndpointId ep, const char * msg, ...)
 {
-    CurrentDay = mCurrentDay;
-    NextDay    = mNextDay;
-
-    return CHIP_NO_ERROR;
+    va_list v;
+    va_start(v, msg);
+    ChipLogError(NotSpecified, msg, v);
+    va_end(v);
 }
 
-DataModel::Nullable<Structs::DayStruct::Type> CalendarProviderInstance::GetDay(uint32_t date)
+DataModel::Nullable<Structs::DayStruct::Type> CalendarProviderInstance::GetDay(uint64_t date)
 {
     for (auto & day : mSpecialDays)
     {
@@ -306,141 +249,29 @@ DataModel::Nullable<Structs::DayStruct::Type> CalendarProviderInstance::GetDay(u
     for (auto & period : mCalendarPeriods)
     {
         if (!period.startDate.IsNull() && period.startDate.Value() < date)
-            continue;
-        for (auto & day : period.days)
         {
-            if ((day.daysOfWeek.HasValue() && (day.daysOfWeek.Value().GetField(week_day))) ||
-                (day.date.HasValue() && (day.date.Value() == date)))
+            continue;
+        }
+
+        bool calendarByWeek = period.days.size() > 0 && period.days[0].daysOfWeek.HasValue();
+        if (calendarByWeek)
+        {
+            for (auto & day : period.days)
             {
-                return day;
+                if (day.daysOfWeek.ValueOr(0).Has(week_day))
+                {
+                    return day;
+                }
             }
+        }
+        else // loop calendar
+        {
+            uint32_t index = static_cast<uint32_t>((date - period.startDate.ValueOr(0)) / kSecondsPerDay % period.days.size());
+            return period.days[index];
         }
     }
 
     return DataModel::Nullable<Structs::DayStruct::Type>();
-}
-
-#if 0
-CHIP_ERROR EnergyCalendarContent::UpdateDateRelativeAttributes()
-{
-    uint32_t date = get_current_utc();
-    //uint32_t time = date % kOneDay;
-    //date -= time;
-
-    if ((currentDate <= date) && (date < currentDate + kOneDay))
-    {
-        return CHIP_NO_ERROR;
-    }
-
-    currentDate = date;
-    CurrentDay = nullptr;
-    NextDay = nullptr;
-    CurrentTransition = nullptr;
-    //CurrentPeakPeriod = nullptr;
-    //NextPeakPeriod = nullptr;
-
-    CurrentDay = EnergyCalendarContent::GetDay(date);
-    if (!CurrentDay.IsNull())
-    {
-        auto &day = CurrentDay.Value();
-        currentDate = day.Date;
-        auto transition_iterator = day.Transitions.begin();
-        uint32_t next_tr_time = kOneDay;
-
-        while (transition_iterator.Next())
-        {
-            auto & transition = transition_iterator.GetValue();
-            auto tr_time = transition.TransitionTime;
-            if (tr_time <= time && (CurrentTransition == nullptr || CurrentTransition.TransitionTime < tr_time))
-            {
-                CurrentTransition = transition;
-            }
-            if ((time > tr_time) && (time < next_tr_time))
-            {
-                next_tr_time = time;
-            }
-        }
-
-        //CurrentPeakPeriod.Value() = DayToPeak(day);
-    }
-
-    NextDay = EnergyCalendarContent::GetDay(date + kOneDay);
-    //if (!NextDay.IsNull())
-    //{
-    //    NexytPeakPeriod.Value() = DayToPeak(NextDay.Value());
-    //}
-
-    return CHIP_NO_ERROR;
-}
-
-#endif
-
-bool CalendarProviderInstance::CheckPeriods()
-{
-    uint32_t date = 0;
-    for (auto & period : mCalendarPeriods)
-    {
-        if (!period.startDate.IsNull())
-        {
-            if (period.startDate.Value() < date)
-            {
-                return false;
-            }
-            date = period.startDate.Value();
-        }
-
-        for (auto & day : period.days)
-        {
-            if (!CheckDay(day))
-            {
-                return false;
-            }
-        }
-    }
-
-    return true;
-}
-
-bool CalendarProviderInstance::CheckSpecialDays()
-{
-    uint32_t date = 0;
-    for (auto & day : mSpecialDays)
-    {
-        if (!day.daysOfWeek.HasValue() || !day.calendarID.HasValue() || !CheckDay(day) || day.date.HasValue() ||
-            day.date.Value() > date)
-        {
-            return false;
-        }
-        date = day.date.Value();
-    }
-
-    return true;
-}
-
-bool CalendarProviderInstance::CheckDay(const Structs::DayStruct::Type & day)
-{
-    if ((day.daysOfWeek.HasValue() && day.date.HasValue()) || (!day.daysOfWeek.HasValue() && !day.date.HasValue()))
-    {
-        return false;
-    }
-
-    if (day.transitions.size() == 0)
-    {
-        return false;
-    }
-
-    uint32_t time = 0;
-    for (auto & transition : day.transitions)
-    {
-        auto tr_time = transition.transitionTime;
-        if (tr_time < time)
-        {
-            return false;
-        }
-        time = tr_time;
-    }
-
-    return true;
 }
 
 void CalendarProviderInstance::JsonToCalendarPeriodStruct(Json::Value & root, Structs::CalendarPeriodStruct::Type & value)

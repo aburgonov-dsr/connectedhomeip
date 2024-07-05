@@ -53,8 +53,9 @@ public:
     CHIP_ERROR LoadJson(Json::Value & root);
 
     /* owerride */
-    CHIP_ERROR GetDays(EndpointId ep, DataModel::Nullable<Structs::DayStruct::Type> & CurrentDay,
-                       DataModel::Nullable<Structs::DayStruct::Type> & NextDay) override;
+    DataModel::Nullable<Structs::DayStruct::Type> GetDay(uint64_t day) override;
+
+    void ErrorMessage(EndpointId ep, const char * msg, ...) override;
 
 private:
     //uint32_t mDate;
@@ -62,17 +63,11 @@ private:
 
     // Attributes contaners allocated memory
     DataModel::Nullable<CharSpan> mName;
+    DataModel::Nullable<uint32_t> mStartDate;
     DataModel::List<Structs::CalendarPeriodStruct::Type> mCalendarPeriods;
     DataModel::List<Structs::DayStruct::Type> mSpecialDays;
-    DataModel::Nullable<Structs::DayStruct::Type> mCurrentDay;
-    DataModel::Nullable<Structs::DayStruct::Type> mNextDay;
     DataModel::Nullable<Structs::PeakPeriodStruct::Type> mCurrentPeak;
     DataModel::Nullable<Structs::PeakPeriodStruct::Type> mNextPeak;
-
-    DataModel::Nullable<Structs::DayStruct::Type> GetDay(uint32_t date);
-    bool CheckSpecialDays();
-    bool CheckDay(const Structs::DayStruct::Type & day);
-    bool CheckPeriods();
 
     void JsonToCalendarPeriodStruct(Json::Value & root, Structs::CalendarPeriodStruct::Type & value);
     void JsonToDayStruct(Json::Value & root, Structs::DayStruct::Type & value);

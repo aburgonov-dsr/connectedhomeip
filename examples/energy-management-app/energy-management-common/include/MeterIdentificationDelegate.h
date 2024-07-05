@@ -30,7 +30,7 @@ namespace MeterIdentification {
 class MeterIdentificationDelegate : public MeterIdentification::Delegate
 {
 public:
-    ~MeterIdentificationDelegate() = default;
+    virtual ~MeterIdentificationDelegate();
 
     void Init();
 
@@ -39,23 +39,23 @@ public:
     // Attribute Accessors
 
     DataModel::Nullable<MeterTypeEnum> GetMeterType() override { return mMeterType; };
-    CharSpan GetUtilityName() override { return mUtilityName; };
-    CharSpan GetPointOfDelivery() override { return mPointOfDelivery; };
+    DataModel::Nullable<CharSpan> GetUtilityName() override { return mUtilityName; };
+    DataModel::Nullable<CharSpan> GetPointOfDelivery() override { return mPointOfDelivery; };
     DataModel::Nullable<uint64_t> GetPowerThreshold() override { return mPowerThreshold; };
     DataModel::Nullable<PowerThresholdSourceEnum> GetPowerThresholdSource() override { return mPowerThresholdSource; };
 
     // Internal Application API to set attribute values
     CHIP_ERROR SetMeterType(DataModel::Nullable<MeterTypeEnum>);
-    CHIP_ERROR SetUtilityName(CharSpan value);
-    CHIP_ERROR SetPointOfDelivery(CharSpan value);
+    CHIP_ERROR SetUtilityName(DataModel::Nullable<CharSpan> value);
+    CHIP_ERROR SetPointOfDelivery(DataModel::Nullable<CharSpan> value);
     CHIP_ERROR SetPowerThreshold(DataModel::Nullable<uint64_t>);
     CHIP_ERROR SetPowerThresholdSource(DataModel::Nullable<PowerThresholdSourceEnum>);
 
 private:
     // Attribute storage
     DataModel::Nullable<MeterTypeEnum> mMeterType;
-    CharSpan mUtilityName;
-    CharSpan mPointOfDelivery;
+    DataModel::Nullable<CharSpan> mUtilityName;
+    DataModel::Nullable<CharSpan> mPointOfDelivery;
     DataModel::Nullable<uint64_t> mPowerThreshold;
     DataModel::Nullable<PowerThresholdSourceEnum> mPowerThresholdSource;
 };

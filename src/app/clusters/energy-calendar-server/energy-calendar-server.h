@@ -55,26 +55,27 @@ public:
 
     EndpointId endpoint() const { return _endpoint; };
 
-    CHIP_ERROR SetCalendarID(DataModel::Nullable<uint32_t> CalendarID);
-    CHIP_ERROR SetName(DataModel::Nullable<CharSpan> Name);
-    CHIP_ERROR SetProviderID(DataModel::Nullable<uint32_t> ProviderID);
-    CHIP_ERROR SetEventID(DataModel::Nullable<uint32_t> EventID);
+    CHIP_ERROR SetCalendarID(DataModel::Nullable<uint32_t> calendarID);
+    CHIP_ERROR SetName(DataModel::Nullable<CharSpan> name);
+    CHIP_ERROR SetProviderID(DataModel::Nullable<uint32_t> providerID);
+    CHIP_ERROR SetEventID(DataModel::Nullable<uint32_t> eventID);
 
-    CHIP_ERROR SetCalendarPeriod(DataModel::Nullable<uint32_t> StartDate,
-                                 DataModel::List<Structs::CalendarPeriodStruct::Type> CalendarPeriods);
+    CHIP_ERROR SetCalendarPeriod(DataModel::Nullable<uint32_t> startDate,
+                                 DataModel::List<Structs::CalendarPeriodStruct::Type> calendarPeriods);
 
-    CHIP_ERROR SetSpecialDays(DataModel::List<Structs::DayStruct::Type> SpecialDays);
+    CHIP_ERROR SetSpecialDays(DataModel::List<Structs::DayStruct::Type> specialDays);
 
-    CHIP_ERROR SetCurrentAndNextDays(DataModel::Nullable<Structs::DayStruct::Type> CurrentDay,
-                                     DataModel::Nullable<Structs::DayStruct::Type> NextDay);
+    CHIP_ERROR SetCurrentAndNextDays(DataModel::Nullable<Structs::DayStruct::Type> currentDay,
+                                     DataModel::Nullable<Structs::DayStruct::Type> nextDay);
 
-    CHIP_ERROR SetPeakPeriods(DataModel::Nullable<Structs::PeakPeriodStruct::Type> CurrentPeakPeriod,
-                              DataModel::Nullable<Structs::PeakPeriodStruct::Type> NextPeakPeriod);
+    CHIP_ERROR SetPeakPeriods(DataModel::Nullable<Structs::PeakPeriodStruct::Type> currentPeakPeriod,
+                              DataModel::Nullable<Structs::PeakPeriodStruct::Type> nextPeakPeriod);
 
-    CHIP_ERROR UpdateDays(void);
+    CHIP_ERROR UpdateDays(uint64_t day);
 
-    virtual CHIP_ERROR GetDays(EndpointId ep, DataModel::Nullable<Structs::DayStruct::Type> & CurrentDay,
-                               DataModel::Nullable<Structs::DayStruct::Type> & NextDay) = 0;
+    virtual DataModel::Nullable<Structs::DayStruct::Type> GetDay(uint64_t day) = 0;
+
+    virtual void ErrorMessage(EndpointId ep, const char * msg, ...) = 0;
 
     DataModel::Nullable<uint32_t> GetCalendarID(void) { return _calendarID; }
     DataModel::Nullable<CharSpan> GetName(void) { return _name; }
@@ -102,6 +103,11 @@ private:
     DataModel::Nullable<Structs::DayStruct::Type> _nextDay;
     DataModel::Nullable<Structs::PeakPeriodStruct::Type> _currentPeakPeriod;
     DataModel::Nullable<Structs::PeakPeriodStruct::Type> _nextPeakPeriod;
+
+    bool CheckPeriods(DataModel::List<Structs::CalendarPeriodStruct::Type> &periods);
+    bool CheckSpecialDays(DataModel::List<Structs::DayStruct::Type> &specialDays);
+    bool CheckDay(const Structs::DayStruct::Type & day);
+    bool CheckPeakPeriod(const Structs::PeakPeriodStruct::Type & peakPeriod);
 };
 
 /** @brief
@@ -125,6 +131,8 @@ public:
     // Commands
     // void InvokeCommand(HandlerContext & ctx) override;
 
+    static uint32_t mCurrentDate;
+    
 private:
     BitMask<Feature> feature;
     CalendarProvider * calendars[kNumSupportedEndpoints] = { 0 };

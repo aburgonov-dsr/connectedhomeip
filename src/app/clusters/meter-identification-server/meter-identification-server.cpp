@@ -64,7 +64,8 @@ bool Instance::HasFeature(Feature aFeature) const
 // AttributeAccessInterface
 CHIP_ERROR Instance::Read(const ConcreteReadAttributePath & aPath, AttributeValueEncoder & aEncoder)
 {
-    ChipLogProgress(Zcl, "Meter Ind read attr %d", aPath.mAttributeId);
+    ChipLogProgress(Zcl, "Meter Indication read attr %d", aPath.mAttributeId);
+
     switch (aPath.mAttributeId)
     {
     case FeatureMap::Id:

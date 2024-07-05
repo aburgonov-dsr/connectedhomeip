@@ -44,8 +44,8 @@ public:
     void SetEndpointId(EndpointId aEndpoint) { mEndpointId = aEndpoint; }
 
     virtual DataModel::Nullable<MeterTypeEnum> GetMeterType()                       = 0;
-    virtual CharSpan GetUtilityName()                                               = 0;
-    virtual CharSpan GetPointOfDelivery()                                           = 0;
+    virtual DataModel::Nullable<CharSpan> GetUtilityName()                          = 0;
+    virtual DataModel::Nullable<CharSpan> GetPointOfDelivery()                      = 0;
     virtual DataModel::Nullable<uint64_t> GetPowerThreshold()                       = 0;
     virtual DataModel::Nullable<PowerThresholdSourceEnum> GetPowerThresholdSource() = 0;
 
