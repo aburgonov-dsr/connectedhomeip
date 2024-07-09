@@ -44,16 +44,19 @@ constexpr uint32_t kMaximumSpecialDaysLength     = 50;
 
 constexpr int kNumSupportedEndpoints = 1;
 
+class EnergyCalendarServer;
+
 /** @brief
  * CalendarProvider is interface of the Calendar Provider
  */
 class CalendarProvider
 {
 public:
-    CalendarProvider(EndpointId ep) : _endpoint(ep) {}
+    CalendarProvider(EndpointId ep) : mEndpoint(ep) {}
     virtual ~CalendarProvider() = default;
 
-    EndpointId endpoint() const { return _endpoint; };
+    EndpointId endpoint() const { return mEndpoint; };
+    void SetServer(EnergyCalendarServer *srv) { mServer = srv; }
 
     CHIP_ERROR SetCalendarID(DataModel::Nullable<uint32_t> calendarID);
     CHIP_ERROR SetName(DataModel::Nullable<CharSpan> name);
@@ -71,38 +74,40 @@ public:
     CHIP_ERROR SetPeakPeriods(DataModel::Nullable<Structs::PeakPeriodStruct::Type> currentPeakPeriod,
                               DataModel::Nullable<Structs::PeakPeriodStruct::Type> nextPeakPeriod);
 
-    CHIP_ERROR UpdateDays(uint64_t day);
+    CHIP_ERROR UpdateDays(uint32_t day);
 
-    virtual DataModel::Nullable<Structs::DayStruct::Type> GetDay(uint64_t day) = 0;
+    virtual DataModel::Nullable<Structs::DayStruct::Type> GetDay(uint32_t day) = 0;
 
     virtual void ErrorMessage(EndpointId ep, const char * msg, ...) = 0;
 
-    DataModel::Nullable<uint32_t> GetCalendarID(void) { return _calendarID; }
-    DataModel::Nullable<CharSpan> GetName(void) { return _name; }
-    DataModel::Nullable<uint32_t> GetProviderID(void) { return _providerID; }
-    DataModel::Nullable<uint32_t> GetEventID(void) { return _eventID; }
-    DataModel::Nullable<uint32_t> GetStartDate(void) { return _startDate; }
-    DataModel::List<Structs::CalendarPeriodStruct::Type> GetCalendarPeriods(void) { return _calendarPeriods; }
-    DataModel::List<Structs::DayStruct::Type> GetSpecialDays(void) { return _specialDays; }
-    DataModel::Nullable<Structs::DayStruct::Type> GetCurrentDay(void) { return _currentDay; }
-    DataModel::Nullable<Structs::DayStruct::Type> GetNextDay(void) { return _nextDay; }
-    DataModel::Nullable<Structs::PeakPeriodStruct::Type> GetCurrentPeakPeriod(void) { return _currentPeakPeriod; }
-    DataModel::Nullable<Structs::PeakPeriodStruct::Type> GetNextPeakPeriod(void) { return _nextPeakPeriod; }
+    DataModel::Nullable<uint32_t> GetCalendarID(void) { return mCalendarID; }
+    DataModel::Nullable<CharSpan> GetName(void) { return mName; }
+    DataModel::Nullable<uint32_t> GetProviderID(void) { return mProviderID; }
+    DataModel::Nullable<uint32_t> GetEventID(void) { return mEventID; }
+    DataModel::Nullable<uint32_t> GetStartDate(void) { return mStartDate; }
+    DataModel::List<Structs::CalendarPeriodStruct::Type> GetCalendarPeriods(void) { return mCalendarPeriods; }
+    DataModel::List<Structs::DayStruct::Type> GetSpecialDays(void) { return mSpecialDays; }
+    DataModel::Nullable<Structs::DayStruct::Type> GetCurrentDay(void) { return mCurrentDay; }
+    DataModel::Nullable<Structs::DayStruct::Type> GetNextDay(void) { return mNextDay; }
+    DataModel::Nullable<Structs::PeakPeriodStruct::Type> GetCurrentPeakPeriod(void) { return mCurrentPeakPeriod; }
+    DataModel::Nullable<Structs::PeakPeriodStruct::Type> GetNextPeakPeriod(void) { return mNextPeakPeriod; }
 
 private:
-    EndpointId _endpoint;
+    EndpointId mEndpoint;
+    EnergyCalendarServer *mServer;
+    uint32_t mCurrentDate;
 
-    DataModel::Nullable<uint32_t> _calendarID;
-    DataModel::Nullable<CharSpan> _name;
-    DataModel::Nullable<uint32_t> _providerID;
-    DataModel::Nullable<uint32_t> _eventID;
-    DataModel::Nullable<uint32_t> _startDate;
-    DataModel::List<Structs::CalendarPeriodStruct::Type> _calendarPeriods;
-    DataModel::List<Structs::DayStruct::Type> _specialDays;
-    DataModel::Nullable<Structs::DayStruct::Type> _currentDay;
-    DataModel::Nullable<Structs::DayStruct::Type> _nextDay;
-    DataModel::Nullable<Structs::PeakPeriodStruct::Type> _currentPeakPeriod;
-    DataModel::Nullable<Structs::PeakPeriodStruct::Type> _nextPeakPeriod;
+    DataModel::Nullable<uint32_t> mCalendarID;
+    DataModel::Nullable<CharSpan> mName;
+    DataModel::Nullable<uint32_t> mProviderID;
+    DataModel::Nullable<uint32_t> mEventID;
+    DataModel::Nullable<uint32_t> mStartDate;
+    DataModel::List<Structs::CalendarPeriodStruct::Type> mCalendarPeriods;
+    DataModel::List<Structs::DayStruct::Type> mSpecialDays;
+    DataModel::Nullable<Structs::DayStruct::Type> mCurrentDay;
+    DataModel::Nullable<Structs::DayStruct::Type> mNextDay;
+    DataModel::Nullable<Structs::PeakPeriodStruct::Type> mCurrentPeakPeriod;
+    DataModel::Nullable<Structs::PeakPeriodStruct::Type> mNextPeakPeriod;
 
     bool CheckPeriods(DataModel::List<Structs::CalendarPeriodStruct::Type> &periods);
     bool CheckSpecialDays(DataModel::List<Structs::DayStruct::Type> &specialDays);
@@ -118,6 +123,10 @@ class EnergyCalendarServer : public AttributeAccessInterface
 public:
     EnergyCalendarServer();
     EnergyCalendarServer(Feature aFeature);
+    ~EnergyCalendarServer() { Shutdown(); }
+
+    CHIP_ERROR Init();
+    void Shutdown();
 
     bool HasFeature(Feature aFeature) const;
 
@@ -131,8 +140,6 @@ public:
     // Commands
     // void InvokeCommand(HandlerContext & ctx) override;
 
-    static uint32_t mCurrentDate;
-    
 private:
     BitMask<Feature> feature;
     CalendarProvider * calendars[kNumSupportedEndpoints] = { 0 };

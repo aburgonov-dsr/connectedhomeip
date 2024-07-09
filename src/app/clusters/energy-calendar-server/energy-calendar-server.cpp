@@ -37,8 +37,6 @@ namespace EnergyCalendar {
 
 constexpr uint32_t kSecInOneDay = 60 * 60 * 24;
 
-uint32_t EnergyCalendarServer::mCurrentDate = 0;
-
 #define VerifyOrReturnLogSend(expr, ep, ...)                                                                                       \
     do                                                                                                                             \
     {                                                                                                                              \
@@ -94,48 +92,48 @@ void UnlockThreadTask(void)
 
 CHIP_ERROR CalendarProvider::SetCalendarID(DataModel::Nullable<uint32_t> calendarID)
 {
-    if (_calendarID.Update(calendarID))
+    if (mCalendarID.Update(calendarID))
     {
-        MatterReportingAttributeChangeCallback(_endpoint, EnergyCalendar::Id, CalendarID::Id);
+        MatterReportingAttributeChangeCallback(mEndpoint, EnergyCalendar::Id, CalendarID::Id);
     }
     return CHIP_NO_ERROR;
 }
 
 CHIP_ERROR CalendarProvider::SetName(DataModel::Nullable<CharSpan> name)
 {
-    bool change = (name.IsNull() != _name.IsNull()) ||
-                  (!name.IsNull() &&  name.Value().data_equal(_name.Value()));
+    bool change = (name.IsNull() != mName.IsNull()) ||
+                  (!name.IsNull() &&  name.Value().data_equal(mName.Value()));
 
     if (change)
     {
         if (name.IsNull())
         {
-            _name.SetNull();
+            mName.SetNull();
         }
         else
         {
-            _name.SetNonNull(*name);
+            mName.SetNonNull(*name);
         }
 
-        MatterReportingAttributeChangeCallback(_endpoint, EnergyCalendar::Id, Name::Id);
+        MatterReportingAttributeChangeCallback(mEndpoint, EnergyCalendar::Id, Name::Id);
     }
     return CHIP_NO_ERROR;
 }
 
 CHIP_ERROR CalendarProvider::SetProviderID(DataModel::Nullable<uint32_t> providerID)
 {
-    if (_providerID.Update(providerID))
+    if (mProviderID.Update(providerID))
     {
-        MatterReportingAttributeChangeCallback(_endpoint, EnergyCalendar::Id, ProviderID::Id);
+        MatterReportingAttributeChangeCallback(mEndpoint, EnergyCalendar::Id, ProviderID::Id);
     }
     return CHIP_NO_ERROR;
 }
 
 CHIP_ERROR CalendarProvider::SetEventID(DataModel::Nullable<uint32_t> eventID)
 {
-    if (_eventID.Update(eventID))
+    if (mEventID.Update(eventID))
     {
-        MatterReportingAttributeChangeCallback(_endpoint, EnergyCalendar::Id, EventID::Id);
+        MatterReportingAttributeChangeCallback(mEndpoint, EnergyCalendar::Id, EventID::Id);
     }
     return CHIP_NO_ERROR;
 }
@@ -148,7 +146,7 @@ CHIP_ERROR CalendarProvider::SetCalendarPeriod(DataModel::Nullable<uint32_t> sta
     if ((startDate.IsNull() && !calendarPeriods.empty()) ||
         (!startDate.IsNull() && calendarPeriods.empty()))
     {
-        ErrorMessage(_endpoint, "StartDate and CalendarPeriods must together either have values ​​or be empty");
+        ErrorMessage(mEndpoint, "StartDate and CalendarPeriods must together either have values ​​or be empty");
         check = false;
 
     }
@@ -161,24 +159,24 @@ CHIP_ERROR CalendarProvider::SetCalendarPeriod(DataModel::Nullable<uint32_t> sta
 
     if (check)
     {
-        change = _startDate.Update(startDate);
-        _calendarPeriods = calendarPeriods;
+        change = mStartDate.Update(startDate);
+        mCalendarPeriods = calendarPeriods;
     }
     else
     {
-        change = _startDate.Update(DataModel::Nullable<uint32_t>());
-        _calendarPeriods = DataModel::List<Structs::CalendarPeriodStruct::Type>();
+        change = mStartDate.Update(DataModel::Nullable<uint32_t>());
+        mCalendarPeriods = DataModel::List<Structs::CalendarPeriodStruct::Type>();
     }
 
     if (change)
     {
-        MatterReportingAttributeChangeCallback(_endpoint, EnergyCalendar::Id, StartDate::Id);
+        MatterReportingAttributeChangeCallback(mEndpoint, EnergyCalendar::Id, StartDate::Id);
     }
-    MatterReportingAttributeChangeCallback(_endpoint, EnergyCalendar::Id, CalendarPeriods::Id);
+    MatterReportingAttributeChangeCallback(mEndpoint, EnergyCalendar::Id, CalendarPeriods::Id);
 
     UnlockThreadTask();
 
-    EnergyCalendarServer::mCurrentDate = 0;
+    mCurrentDate = 0;
         
     return check ? CHIP_NO_ERROR : CHIP_ERROR_INCORRECT_STATE;
 }
@@ -191,49 +189,55 @@ CHIP_ERROR CalendarProvider::SetSpecialDays(DataModel::List<Structs::DayStruct::
 
     if (check)
     {
-        _specialDays = specialDays;
+        mSpecialDays = specialDays;
     }
     else
     {
-        _specialDays = DataModel::List<Structs::DayStruct::Type>();
+        mSpecialDays = DataModel::List<Structs::DayStruct::Type>();
     }
 
-    MatterReportingAttributeChangeCallback(_endpoint, EnergyCalendar::Id, SpecialDays::Id);
+    MatterReportingAttributeChangeCallback(mEndpoint, EnergyCalendar::Id, SpecialDays::Id);
 
     UnlockThreadTask();
 
-    EnergyCalendarServer::mCurrentDate = 0;
+    mCurrentDate = 0;
 
     return check ? CHIP_NO_ERROR : CHIP_ERROR_INCORRECT_STATE;
 }
 
-CHIP_ERROR CalendarProvider::SetCurrentAndNextDays(DataModel::Nullable<Structs::DayStruct::Type> CurrentDay,
-                                                   DataModel::Nullable<Structs::DayStruct::Type> NextDay)
+CHIP_ERROR CalendarProvider::SetCurrentAndNextDays(DataModel::Nullable<Structs::DayStruct::Type> currentDay,
+                                                   DataModel::Nullable<Structs::DayStruct::Type> nextDay)
 {
     bool change;
 
     LockThreadTask();
 
-    change = true; // *CurrentDay != *_currentDay;
+    change = true; // *currentDay != *_currentDay;
     if (change)
     {
-        _currentDay.SetNonNull(*CurrentDay);
-        MatterReportingAttributeChangeCallback(_endpoint, EnergyCalendar::Id, CurrentDay::Id);
+        if (currentDay.IsNull())
+            mCurrentDay.SetNull();
+        else
+            mCurrentDay.SetNonNull(*currentDay);
+        MatterReportingAttributeChangeCallback(mEndpoint, EnergyCalendar::Id, CurrentDay::Id);
     }
 
     change = true; // *NextDay != *_nextDay;
     if (change)
     {
-        _nextDay.SetNonNull(*NextDay);
-        MatterReportingAttributeChangeCallback(_endpoint, EnergyCalendar::Id, NextDay::Id);
+        if (nextDay.IsNull())
+            mNextDay.SetNull();
+        else
+            mNextDay.SetNonNull(*nextDay);
+        MatterReportingAttributeChangeCallback(mEndpoint, EnergyCalendar::Id, NextDay::Id);
     }
 
     UnlockThreadTask();
     return CHIP_NO_ERROR;
 }
 
-CHIP_ERROR CalendarProvider::SetPeakPeriods(DataModel::Nullable<Structs::PeakPeriodStruct::Type> CurrentPeakPeriod,
-                                            DataModel::Nullable<Structs::PeakPeriodStruct::Type> NextPeakPeriod)
+CHIP_ERROR CalendarProvider::SetPeakPeriods(DataModel::Nullable<Structs::PeakPeriodStruct::Type> currentPeakPeriod,
+                                            DataModel::Nullable<Structs::PeakPeriodStruct::Type> nextPeakPeriod)
 {
     bool change;
     LockThreadTask();
@@ -241,15 +245,21 @@ CHIP_ERROR CalendarProvider::SetPeakPeriods(DataModel::Nullable<Structs::PeakPer
     change = true; // CurrentPeakPeriod != _currentPeakPeriod;
     if (change)
     {
-        _currentPeakPeriod.SetNonNull(*CurrentPeakPeriod);
-        MatterReportingAttributeChangeCallback(_endpoint, EnergyCalendar::Id, CurrentPeakPeriod::Id);
+        if (currentPeakPeriod.IsNull())
+            mCurrentPeakPeriod.SetNull();
+        else
+            mCurrentPeakPeriod.SetNonNull(*currentPeakPeriod);
+        MatterReportingAttributeChangeCallback(mEndpoint, EnergyCalendar::Id, CurrentPeakPeriod::Id);
     }
 
     change = true; // NextPeakPeriod != _nextPeakPeriod;
     if (change)
     {
-        _nextPeakPeriod.SetNonNull(*NextPeakPeriod);
-        MatterReportingAttributeChangeCallback(_endpoint, EnergyCalendar::Id, NextPeakPeriod::Id);
+        if (nextPeakPeriod.IsNull())
+            mNextPeakPeriod.SetNull();
+        else
+            mNextPeakPeriod.SetNonNull(*nextPeakPeriod);
+        MatterReportingAttributeChangeCallback(mEndpoint, EnergyCalendar::Id, NextPeakPeriod::Id);
     }
 
     UnlockThreadTask();
@@ -259,7 +269,7 @@ CHIP_ERROR CalendarProvider::SetPeakPeriods(DataModel::Nullable<Structs::PeakPer
 bool CalendarProvider::CheckPeriods(DataModel::List<Structs::CalendarPeriodStruct::Type> &periods)
 {
     uint32_t date = 0;
-    VerifyOrReturnLogSend((periods.size() > 0 || periods.size() <= 4), _endpoint, "Periods list size must be from 1 to 4");
+    VerifyOrReturnLogSend((periods.size() > 0 || periods.size() <= 4), mEndpoint, "Periods list size must be from 1 to 4");
     for (auto & period : periods)
     {
         if (!period.startDate.IsNull())
@@ -286,13 +296,13 @@ bool CalendarProvider::CheckPeriods(DataModel::List<Structs::CalendarPeriodStruc
 bool CalendarProvider::CheckSpecialDays(DataModel::List<Structs::DayStruct::Type> & specialDays)
 {
     uint32_t date = 0;
-    VerifyOrReturnLogSend(specialDays.size() <= 50, _endpoint, "Special Days list size must be no more 50");
+    VerifyOrReturnLogSend(specialDays.size() <= 50, mEndpoint, "Special Days list size must be no more 50");
     for (auto & day : specialDays)
     {
-        VerifyOrReturnLogSend(!day.daysOfWeek.HasValue(), _endpoint, "Day in Special Days cannot have DayOfWeek value");
-        VerifyOrReturnLogSend(!day.calendarID.HasValue(), _endpoint, "Day in Special Days cannot have CalendarID value");
-        VerifyOrReturnLogSend(day.date.HasValue(), _endpoint, "Day in Special Days must have Date value");
-        VerifyOrReturnLogSend(day.date.Value() > date, _endpoint, "Days in Special Days must be order");
+        VerifyOrReturnLogSend(!day.daysOfWeek.HasValue(), mEndpoint, "Day in Special Days cannot have DayOfWeek value");
+        VerifyOrReturnLogSend(!day.calendarID.HasValue(), mEndpoint, "Day in Special Days cannot have CalendarID value");
+        VerifyOrReturnLogSend(day.date.HasValue(), mEndpoint, "Day in Special Days must have Date value");
+        VerifyOrReturnLogSend(day.date.Value() > date, mEndpoint, "Days in Special Days must be order");
         if(!CheckDay(day))
         {
             return false;
@@ -305,26 +315,26 @@ bool CalendarProvider::CheckSpecialDays(DataModel::List<Structs::DayStruct::Type
 
 bool CalendarProvider::CheckDay(const Structs::DayStruct::Type & day)
 {
-    VerifyOrReturnLogSend(day.daysOfWeek.HasValue() && day.date.HasValue(), _endpoint,
+    VerifyOrReturnLogSend(!day.daysOfWeek.HasValue() || !day.date.HasValue(), mEndpoint,
         "Day can have only one value or DayOfWeek or Date");
     
-    VerifyOrReturnLogSend((day.transitions.size() > 0 || day.transitions.size() <= 48), _endpoint,
+    VerifyOrReturnLogSend((day.transitions.size() > 0 || day.transitions.size() <= 48), mEndpoint,
         "Day transinions list must have from 1 to 48 records");
     
     uint32_t time = 0;
     for (auto & transition : day.transitions)
     {
         auto tr_time = transition.transitionTime;
-        VerifyOrReturnLogSend(tr_time > 1499, _endpoint, "Day transitions must be less 1499");
-        VerifyOrReturnLogSend(tr_time > time, _endpoint, "Day transitions must be order");
-/*
-        if (feature.Has(Feature::kPricingTier))
-            VerifyOrReturnLogSend(transition.priceTier.HasValue(), _endpoint, "Transition must have PriceTier value");
-        if (feature.Has(Feature::kFriendlyCredit))
-            VerifyOrReturnLogSend(transition.friendlyCredit.HasValue(), _endpoint, "Transition must have FriendlyCredit value");
-        if (feature.Has(Feature::kAuxiliaryLoad))
-            VerifyOrReturnLogSend(transition.auxiliaryLoad.HasValue(), _endpoint, "Transition must have AuxiliaryLoad value");
-*/
+        VerifyOrReturnLogSend(tr_time < 1500, mEndpoint, "Day transitions must be less 1499");
+        VerifyOrReturnLogSend(tr_time >= time, mEndpoint, "Day transitions must be order");
+
+        if (mServer && mServer->HasFeature(Feature::kPricingTier))
+            VerifyOrReturnLogSend(transition.priceTier.HasValue(), mEndpoint, "Transition must have PriceTier value");
+        if (mServer && mServer->HasFeature(Feature::kFriendlyCredit))
+            VerifyOrReturnLogSend(transition.friendlyCredit.HasValue(), mEndpoint, "Transition must have FriendlyCredit value");
+        if (mServer && mServer->HasFeature(Feature::kAuxiliaryLoad))
+            VerifyOrReturnLogSend(transition.auxiliaryLoad.HasValue(), mEndpoint, "Transition must have AuxiliaryLoad value");
+
         time = tr_time;
     }
 
@@ -334,21 +344,24 @@ bool CalendarProvider::CheckDay(const Structs::DayStruct::Type & day)
 bool CalendarProvider::CheckPeakPeriod(const Structs::PeakPeriodStruct::Type & peakPeriod)
 {
     VerifyOrReturnLogSend(peakPeriod.severity >= PeakPeriodSeverityEnum::kUnknownEnumValue,
-        _endpoint, "Wrong PeakPeriod Severity value %d", static_cast<int>(PeakPeriodSeverityEnum::kUnknownEnumValue));
+        mEndpoint, "Wrong PeakPeriod Severity value %d", static_cast<int>(PeakPeriodSeverityEnum::kUnknownEnumValue));
 
     return true;
 }
 
-CHIP_ERROR CalendarProvider::UpdateDays(uint64_t day)
+CHIP_ERROR CalendarProvider::UpdateDays(uint32_t day)
 {
-    CHIP_ERROR status;
+    if (day == mCurrentDate)
+    {
+        return CHIP_NO_ERROR;
+    }
+    
+    mCurrentDate = day;
+
     DataModel::Nullable<Structs::DayStruct::Type> currentDay = GetDay(day);
     DataModel::Nullable<Structs::DayStruct::Type> nextDay = GetDay(day + kSecInOneDay);
 
-    if (status == CHIP_NO_ERROR)
-    {
-        status = SetCurrentAndNextDays(currentDay, nextDay);
-    }
+    CHIP_ERROR status = SetCurrentAndNextDays(currentDay, nextDay);
 
     return status;
 }
@@ -368,6 +381,17 @@ EnergyCalendarServer::EnergyCalendarServer(Feature aFeature) :
     chip::DeviceLayer::SystemLayer().StartTimer(chip::System::Clock::Seconds16(5 /*kSecInOneDay - time*/), MidnightTimerCallback, this);
 }
 
+CHIP_ERROR EnergyCalendarServer::Init()
+{
+    VerifyOrReturnError(registerAttributeAccessOverride(this), CHIP_ERROR_INCORRECT_STATE);
+    return CHIP_NO_ERROR;
+}
+
+void EnergyCalendarServer::Shutdown()
+{
+    unregisterAttributeAccessOverride(this);
+}
+
 bool EnergyCalendarServer::HasFeature(Feature aFeature) const
 {
     return feature.Has(aFeature);
@@ -380,6 +404,7 @@ CHIP_ERROR EnergyCalendarServer::AddCalendarProvider(CalendarProvider * provider
         if (calendars[i] == nullptr)
         {
             calendars[i] = provider;
+            provider->SetServer(this);
             return CHIP_NO_ERROR;
         }
     }
@@ -433,9 +458,17 @@ DataModel::Nullable<Structs::TransitionStruct::Type> EnergyCalendarServer::GetTr
 // AttributeAccessInterface
 CHIP_ERROR EnergyCalendarServer::Read(const ConcreteReadAttributePath & aPath, AttributeValueEncoder & aEncoder)
 {
-    ChipLogProgress(Zcl, " EnergyCalendarServer::Read");
+    ChipLogProgress(Zcl, "EnergyCalendarServer::Read");
     //ChipLogProgress(Zcl, "current date %ld time %d", GetCurrentDay(), GetCurrentTime());
     CalendarProvider * provider = GetProvider(aPath.mEndpointId);
+    if (provider == nullptr)
+    {
+        ChipLogProgress(Zcl, "EnergyCalendarServer::Read provider null");
+        aEncoder.EncodeNull();
+        return CHIP_IM_GLOBAL_STATUS(UnsupportedAttribute);
+    }
+    ChipLogProgress(Zcl, "EnergyCalendarServer::Read has provider");
+    
     switch (aPath.mAttributeId)
     {
     case CalendarID::Id:
@@ -449,9 +482,23 @@ CHIP_ERROR EnergyCalendarServer::Read(const ConcreteReadAttributePath & aPath, A
     case StartDate::Id:
         return aEncoder.Encode(provider->GetStartDate());
     case CalendarPeriods::Id:
-        return aEncoder.Encode(provider->GetCalendarPeriods());
+        //return aEncoder.EncodeList(provider->GetCalendarPeriods());
+        return aEncoder.EncodeList([this, provider](const auto & encoder) -> CHIP_ERROR {
+            for (auto const & period : provider->GetCalendarPeriods())
+            {
+                ReturnErrorOnFailure(encoder.Encode(period));
+            }
+            return CHIP_NO_ERROR;
+        });
     case SpecialDays::Id:
-        return aEncoder.Encode(provider->GetSpecialDays());
+        //return aEncoder.EncodeList(provider->GetSpecialDays());
+        return aEncoder.EncodeList([this, provider](const auto & encoder) -> CHIP_ERROR {
+            for (auto const & day : provider->GetSpecialDays())
+            {
+                ReturnErrorOnFailure(encoder.Encode(day));
+            }
+            return CHIP_NO_ERROR;
+        });
     /* Date relative attributes */
     case CurrentDay::Id:
         return aEncoder.Encode(provider->GetCurrentDay());
@@ -505,15 +552,11 @@ void EnergyCalendarServer::MidnightTimerCallback(chip::System::Layer *, void * c
     EnergyCalendarServer * instance = (EnergyCalendarServer *) callbackContext;
 
     uint32_t day = GetCurrentDay();
-    if (day != mCurrentDate)
+    for (int i = 0; i < kNumSupportedEndpoints; ++i)
     {
-        mCurrentDate = day;
-        for (int i = 0; i < kNumSupportedEndpoints; ++i)
+        if (instance->calendars[i] != nullptr)
         {
-            if (instance->calendars[i] != nullptr)
-            {
-                instance->calendars[i]->UpdateDays(mCurrentDate);
-            }
+            instance->calendars[i]->UpdateDays(day);
         }
     }
 

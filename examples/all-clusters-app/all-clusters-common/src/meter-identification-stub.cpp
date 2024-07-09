@@ -28,6 +28,8 @@ static std::unique_ptr<MeterIdentificationInstance> gMIInstance;
 
 void emberAfMeterIdentificationClusterInitCallback(chip::EndpointId endpointId)
 {
+    ChipLogProgress(Zcl, "emberAfMeterIdentificationClusterInitCallback %d", (int)endpointId);
+
     VerifyOrDie(endpointId == 1); // this cluster is only enabled for endpoint 1.
     VerifyOrDie(!gMIInstance);
 

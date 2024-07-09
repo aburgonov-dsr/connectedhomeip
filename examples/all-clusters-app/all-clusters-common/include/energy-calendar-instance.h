@@ -53,7 +53,7 @@ public:
     CHIP_ERROR LoadJson(Json::Value & root);
 
     /* owerride */
-    DataModel::Nullable<Structs::DayStruct::Type> GetDay(uint64_t day) override;
+    DataModel::Nullable<Structs::DayStruct::Type> GetDay(uint32_t day) override;
 
     void ErrorMessage(EndpointId ep, const char * msg, ...) override;
 

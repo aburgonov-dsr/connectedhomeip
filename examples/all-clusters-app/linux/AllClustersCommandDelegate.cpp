@@ -39,6 +39,8 @@
 #include <rvc-modes.h>
 
 #include <string>
+#include <fstream>
+#include <iostream>
 
 using namespace chip;
 using namespace chip::app;
@@ -508,7 +510,40 @@ void AllClustersAppCommandHandler::OnOperationalStateChange(std::string device, 
 void AllClustersAppCommandHandler::OnEnergyCalendarHandler(Json::Value param)
 {
     EnergyCalendar::CalendarProviderInstance * provider = EnergyCalendar::GetProvider();
-    provider->LoadJson(param);
+    if (provider == nullptr)
+    {
+        ChipLogError(NotSpecified, "AllClusters App: Has not Calendar provider");
+        return;
+    }
+
+    if (param.isMember("Configure"))
+    {
+        Json::Value config = param.get("CalendarName", Json::Value());
+        if (config.isString())
+        {
+            Json::CharReaderBuilder builder;
+            Json::Value value;
+            std::ifstream ifs;
+            ifs.open(config.asCString());
+            Json::String errs;
+            if (!parseFromStream(builder, ifs, &value, &errs)) {
+                ChipLogError(NotSpecified,
+                     "AllClusters App: Error parsing JSON file %s with error %s:", config.asCString(), errs.c_str());
+            }
+
+            if (value.empty() || !value.isObject())
+            {
+                ChipLogError(NotSpecified, "AllClusters App: Invalid JSON file %s", config.asCString());
+                return;
+            }
+
+            provider->LoadJson(value);
+        }
+    }
+    else
+    {
+        provider->LoadJson(param);
+    }
 }
 
 void AllClustersAppCommandHandler::OnMeterIdentificationHandler(Json::Value param)
