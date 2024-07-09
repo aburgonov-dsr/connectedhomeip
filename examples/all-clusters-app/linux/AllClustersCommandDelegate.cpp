@@ -518,13 +518,20 @@ void AllClustersAppCommandHandler::OnEnergyCalendarHandler(Json::Value param)
 
     if (param.isMember("Configure"))
     {
-        Json::Value config = param.get("CalendarName", Json::Value());
+        Json::Value config = param.get("Configure", Json::Value());
         if (config.isString())
         {
             Json::CharReaderBuilder builder;
             Json::Value value;
             std::ifstream ifs;
+
             ifs.open(config.asCString());
+            if (!ifs.good())
+            {
+                ChipLogError(NotSpecified,
+                     "AllClusters App: Error open file %s", config.asCString());
+            }
+
             Json::String errs;
             if (!parseFromStream(builder, ifs, &value, &errs)) {
                 ChipLogError(NotSpecified,

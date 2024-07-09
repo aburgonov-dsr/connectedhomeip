@@ -28,8 +28,7 @@
 
 #include <string>
 
-static constexpr const size_t kChipEventCmdBufSize = 2048;
-//static constexpr const size_t kChipEventCmdBufSize = 256;
+static constexpr const size_t kChipEventCmdBufSize = 256;
 
 CHIP_ERROR NamedPipeCommands::Start(std::string & path, NamedPipeCommandDelegate * delegate)
 {

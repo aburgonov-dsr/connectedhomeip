@@ -74,7 +74,7 @@ CHIP_ERROR MeterIdentificationDelegate::LoadJson(Json::Value & root)
     if (root.isMember("MeterType"))
     {
         value = root.get("MeterType", Json::Value());
-        if(value.isUInt())
+        if(value.isUInt() && value.asUInt() < static_cast<uint32_t>(MeterTypeEnum::kUnknownEnumValue))
         {
             SetMeterType(static_cast<MeterTypeEnum>(value.asUInt()));
         }
@@ -113,7 +113,7 @@ CHIP_ERROR MeterIdentificationDelegate::LoadJson(Json::Value & root)
     if (root.isMember("PowerThreshold"))
     {
         value = root.get("PowerThreshold", Json::Value());
-        if(value.isUInt64())
+        if(value.isUInt64() && value.asUInt64() < static_cast<uint64_t>(-1)) // ignore 0xFF..FF value
         {
             SetPowerThreshold(value.asUInt64());
         }
@@ -126,7 +126,7 @@ CHIP_ERROR MeterIdentificationDelegate::LoadJson(Json::Value & root)
     if (root.isMember("PowerThresholdSource"))
     {
         value = root.get("PowerThresholdSource", Json::Value());
-        if(value.isUInt())
+        if(value.isUInt() && value.asUInt() < static_cast<uint32_t>(PowerThresholdSourceEnum::kUnknownEnumValue))
         {
             SetPowerThresholdSource(static_cast<PowerThresholdSourceEnum>(value.asUInt()));
         }

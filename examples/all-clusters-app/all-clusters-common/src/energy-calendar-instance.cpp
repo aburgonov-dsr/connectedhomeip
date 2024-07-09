@@ -103,12 +103,10 @@ CHIP_ERROR CalendarProviderInstance::LoadJson(Json::Value & root)
     DataModel::Nullable<uint32_t> eventID;
     Structs::PeakPeriodStruct::Type peak;
 
-    ChipLogProgress(Zcl, "CalendarProviderInstance::LoadJson");
     if (root.isMember("CalendarID"))
     {
-        ChipLogProgress(Zcl, "CalendarProviderInstance::LoadJson have CalendaID");
         value = root.get("CalendarID", Json::Value());
-        if (value.isUInt())
+        if (value.isUInt() && value.asUInt() < static_cast<uint32_t>(-1)) // ignore 0xFF..FF value
         {
             calendarID.SetNonNull(value.asUInt());
         }
@@ -141,7 +139,7 @@ CHIP_ERROR CalendarProviderInstance::LoadJson(Json::Value & root)
     if (root.isMember("ProviderID"))
     {
         value = root.get("ProviderID", Json::Value());
-        if (value.isUInt())
+        if (value.isUInt() && value.asUInt() < static_cast<uint32_t>(-1))
         {
             providerID.SetNonNull(value.asUInt());
         }
@@ -157,7 +155,7 @@ CHIP_ERROR CalendarProviderInstance::LoadJson(Json::Value & root)
         if (root.isMember("StartDate"))
         {
             value = root.get("StartDate", Json::Value());
-            if (value.isUInt())
+            if (value.isUInt() && value.asUInt() < static_cast<uint32_t>(-1))
             {
                 mStartDate.SetNonNull(value.asUInt());
             }
@@ -226,7 +224,7 @@ CHIP_ERROR CalendarProviderInstance::LoadJson(Json::Value & root)
     if (root.isMember("EventID"))
     {
         value = root.get("EventID", Json::Value());
-        if (value.isUInt())
+        if (value.isUInt() && value.asUInt() < static_cast<uint32_t>(-1))
         {
             eventID.SetNonNull(value.asUInt());
         }
@@ -299,7 +297,7 @@ DataModel::Nullable<Structs::DayStruct::Type> CalendarProviderInstance::GetDay(u
 void CalendarProviderInstance::JsonToCalendarPeriodStruct(Json::Value & root, Structs::CalendarPeriodStruct::Type & value)
 {
     Json::Value t = root.get("StartDate", Json::Value());
-    if (!t.empty() && t.isUInt())
+    if (!t.empty() && t.isUInt() && t.asUInt() < static_cast<uint32_t>(-1))
     {
         value.startDate.SetNonNull(t.asUInt());
     }
@@ -315,13 +313,13 @@ void CalendarProviderInstance::JsonToCalendarPeriodStruct(Json::Value & root, St
 void CalendarProviderInstance::JsonToDayStruct(Json::Value & root, Structs::DayStruct::Type & value)
 {
     Json::Value t = root.get("Date", Json::Value());
-    if (!t.empty() && t.isUInt())
+    if (!t.empty() && t.isUInt() && t.asUInt() < static_cast<uint32_t>(-1))
     {
         value.date.SetValue(t.asUInt());
     }
 
     t = root.get("DaysOfWeek", Json::Value());
-    if (!t.empty() && t.isUInt())
+    if (!t.empty() && t.isUInt() && t.asUInt() < 0x80)
     {
         value.daysOfWeek.SetValue(chip::BitMask<TransitionDayOfWeekBitmap>((uint8_t) t.asUInt()));
     }
@@ -335,7 +333,7 @@ void CalendarProviderInstance::JsonToDayStruct(Json::Value & root, Structs::DayS
     }
 
     t = root.get("CalendarID", Json::Value());
-    if (!t.empty() && t.isUInt())
+    if (!t.empty() && t.isUInt() && t.asUInt() < static_cast<uint32_t>(-1))
     {
         value.calendarID.SetValue(t.asUInt());
     }
@@ -344,25 +342,25 @@ void CalendarProviderInstance::JsonToDayStruct(Json::Value & root, Structs::DayS
 void CalendarProviderInstance::JsonToPeakPeriodStruct(Json::Value & root, Structs::PeakPeriodStruct::Type & value)
 {
     Json::Value t = root.get("Severity", Json::Value());
-    if (!t.empty() && t.isUInt())
+    if (!t.empty() && t.isUInt() && t.asUInt() < static_cast<uint32_t>(PeakPeriodSeverityEnum::kUnknownEnumValue))
     {
         value.severity = static_cast<PeakPeriodSeverityEnum>(t.asUInt());
     }
 
     t = root.get("PeakPeriod", Json::Value());
-    if (!t.empty() && t.isUInt())
+    if (!t.empty() && t.isUInt() && t.asUInt() < static_cast<uint16_t>(-1))
     {
         value.peakPeriod = static_cast<uint16_t>(t.asUInt());
     }
 
     t = root.get("StartTime", Json::Value());
-    if (!t.empty() && t.isUInt())
+    if (!t.empty() && t.isUInt() && t.asUInt() < static_cast<uint32_t>(-1))
     {
         value.startTime.SetNonNull(t.asUInt());
     }
 
     t = root.get("EndTime", Json::Value());
-    if (!t.empty() && t.isUInt())
+    if (!t.empty() && t.isUInt() && t.asUInt() < static_cast<uint32_t>(-1))
     {
         value.endTime.SetNonNull(t.asUInt());
     }
@@ -410,13 +408,13 @@ void CalendarProviderInstance::JsonToTransitionStructList(Json::Value & root,
         Json::Value v = root[i];
 
         Json::Value t = v.get("TransitionTime", Json::Value());
-        if (!t.empty() && t.isUInt())
+        if (!t.empty() && t.isUInt() && t.asUInt() < static_cast<uint16_t>(-1))
         {
             value[i].transitionTime = static_cast<uint16_t>(t.asUInt());
         }
 
         t = v.get("PriceTier", Json::Value());
-        if (!t.empty() && t.isUInt())
+        if (!t.empty() && t.isUInt() && t.asUInt() < static_cast<uint32_t>(-1))
         {
             value[i].priceTier.SetValue(t.asUInt());
         }
@@ -428,7 +426,7 @@ void CalendarProviderInstance::JsonToTransitionStructList(Json::Value & root,
         }
 
         t = v.get("AuxiliaryLoad", Json::Value());
-        if (!t.empty() && t.isUInt())
+        if (!t.empty() && t.isUInt() && t.asUInt() < 0x80)
         {
             value[i].auxiliaryLoad.SetValue(chip::BitMask<AuxiliaryLoadBitmap>((uint8_t) t.asUInt()));
         }
