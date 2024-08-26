@@ -101,8 +101,8 @@ class MeterIdAttributes:
             super().__init__()
             self.attribute_name = "PowerThreshold"
             self.attribute = Clusters.MeterIdentification.Attributes.PowerThreshold
-            self.values = [0, 123456, 18446744073709551614, "null"]
-            self.data_type = uint(1)
+            self.values = [-9223372036854775807, 0, 123456, 9223372036854775807, "null"]
+            self.data_type = int()
             self.attr_generator = super().generator()
 
     class PowerThresholdSource(MeterType):
